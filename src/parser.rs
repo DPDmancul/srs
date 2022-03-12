@@ -4,6 +4,8 @@ use std::io::BufRead;
 pub enum Sexp {
     Atom{val: String, lineno: usize},
     List(Vec<Sexp>),
+    Array(Vec<Sexp>),
+    Generics(Vec<Sexp>),
 }
 
 pub fn parse<T: BufRead>(input: T) -> Vec<Sexp> {
@@ -11,7 +13,7 @@ pub fn parse<T: BufRead>(input: T) -> Vec<Sexp> {
     let mut string_mode = false;
     let mut escape_mode = false;
 
-    let mut scopes = vec![Vec::new()];
+    let mut scopes = vec![(Vec::new(), ' ')];
 
     for (lineno, line) in input.lines().enumerate().map(|(n, l)| (n, l.unwrap())) {
         let lineno = lineno + 1;
@@ -19,7 +21,7 @@ pub fn parse<T: BufRead>(input: T) -> Vec<Sexp> {
         macro_rules! close_token {
             () => {
                 if !token.is_empty() {
-                    scopes.last_mut().unwrap().push(Sexp::Atom{val: token, lineno});
+                    scopes.last_mut().unwrap().0.push(Sexp::Atom{val: token, lineno});
                     token = String::new();
                 }
             };
@@ -43,16 +45,26 @@ pub fn parse<T: BufRead>(input: T) -> Vec<Sexp> {
                     token += &String::from(c);
                     escape_mode = false
                 }
-                '(' => {
+                par @ ('(' | '[' | '<') => {
                    close_token!();
-                   scopes.push(Vec::new())
+                   scopes.push((Vec::new(), par))
                 }
-                ')' => {
+                par @ (')' | ']' | '>') => {
                     close_token!();
-                    let closed = scopes.pop().unwrap();
-                    scopes.last_mut().unwrap().push(Sexp::List(closed));
+                    let (closed, opened_by) = scopes.pop().unwrap();
+                    if !(par == ')' && opened_by == '(' || par == ']' && opened_by == '[' || par == '>' && opened_by == '<') {
+                        panic!("'{}' closed by '{}' on line {}", opened_by, par, lineno)
+                    }
+                    scopes.last_mut().unwrap().0.push(
+                        match par {
+                            ')' => Sexp::List(closed),
+                            ']' => Sexp::Array(closed),
+                            '>' => Sexp::Generics(closed),
+                            _ => unreachable!()
+                        }
+                    );
                     if scopes.is_empty() {
-                        panic!("Too much ')' on line {}", lineno)
+                        panic!("Too much '{}' on line {}", par, lineno)
                     }
                 }
                 ';' => {
@@ -70,5 +82,5 @@ pub fn parse<T: BufRead>(input: T) -> Vec<Sexp> {
         panic!("Missing ')'.")
     }
 
-    scopes.pop().unwrap()
+    scopes.pop().unwrap().0
 }

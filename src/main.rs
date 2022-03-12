@@ -1,9 +1,6 @@
 use std::{io::{self, BufReader, BufRead, BufWriter, Write}, fs::File};
 use clap::Parser;
 
-mod parser;
-mod rustify;
-
 /// S-expression to Rust transpiler
 #[derive(Parser, Debug)]
 #[clap(author, version, about)]
@@ -30,6 +27,5 @@ fn main() {
         path => Box::new(BufWriter::new(File::create(path).unwrap()))
     };
 
-    rustify::write(&mut output, parser::parse(input), 0);
-    writeln!(output);
+    srs::parser::parse(input).iter().for_each(|e| write!(output, "{}", e).unwrap());
 }
