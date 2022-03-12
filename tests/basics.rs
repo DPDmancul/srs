@@ -29,7 +29,8 @@ transpile!(
          ;;     let mut guess =
           (String::new)
 
-          ((.((. (io::stdin) read_line) guess) expect) "Failed to read line") ; TODO guess &mut
+          (. (io::stdin) (read_line guess) (expect "Failed to read line")) ; TODO guess &mut
+          ;; or ((.((. (io::stdin) read_line) guess) expect) "Failed to read line")
 
          ;;     let guess: u32 = match guess.trim().parse() {
          ;;         Ok(num) => num,
