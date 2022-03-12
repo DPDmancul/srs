@@ -1,14 +1,14 @@
 mod common;
 
-/* #[test]
-fn hello_world() {
-    assert_eq!(
-        parse("(fn main () (println! \"Hello World!\"))"),
-        "fn main () {
-    println!(\"Hello World!\");
-}"
-        )
-} */
+transpile!(
+    hello_world,
+    r##"(fn main () (println! "Hello World!"))"##,
+    r##"
+        fn main() {
+            println!("Hello World!");
+        }
+    "##
+);
 
 transpile!(
     guess_game, // TODO

@@ -1,5 +1,8 @@
-use std::{io::{self, BufReader, BufRead, BufWriter, Write}, fs::File};
 use clap::Parser;
+use std::{
+    fs::File,
+    io::{self, BufRead, BufReader, BufWriter, Write},
+};
 
 /// S-expression to Rust transpiler
 #[derive(Parser, Debug)]
@@ -19,13 +22,15 @@ fn main() {
 
     let input: Box<dyn BufRead> = match args.input.as_str() {
         "-" => Box::new(BufReader::new(io::stdin())),
-        path => Box::new(BufReader::new(File::open(path).unwrap()))
+        path => Box::new(BufReader::new(File::open(path).unwrap())),
     };
 
     let mut output: Box<dyn Write> = match args.output.as_str() {
         "-" => Box::new(BufWriter::new(io::stdout())),
-        path => Box::new(BufWriter::new(File::create(path).unwrap()))
+        path => Box::new(BufWriter::new(File::create(path).unwrap())),
     };
 
-    srs::parser::parse(input).iter().for_each(|e| write!(output, "{}", e).unwrap());
+    srs::parser::parse(input)
+        .iter()
+        .for_each(|e| write!(output, "{}", e).unwrap());
 }
