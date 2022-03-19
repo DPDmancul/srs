@@ -103,6 +103,7 @@ pages:
   needs: [ doc ]
   script:
     - mv target/doc public
+    - echo "/srs/index.html /srs/srs/index.html" > public/_redirects
   artifacts:
     paths: [ public ]
   rules:
