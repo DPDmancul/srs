@@ -10,6 +10,7 @@ keywords = ["sexpr", "lisp", "s-expression", "rust"]
 categories = ["no-std", "compilers"]
 
 [dependencies]
+itertools = {version = "0.10.2", default-features = false, features = [ "use_alloc" ]}
 
 [dev-dependencies]
 indoc = "1.0"

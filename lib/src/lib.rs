@@ -8,9 +8,14 @@ use core::fmt::{self, Display};
 pub mod parser;
 pub mod rustify;
 
-#[derive(Debug)]
+/// Represents an error occurred during parsing or rustifying.
+///
+/// You can print those errors with `eprintln!("{}", error);`
+#[derive(Debug, Eq, PartialEq)]
 pub struct Error<Kind: Display> {
+    /// Line number of the input where the error occurs.
     pub lineno: Option<usize>,
+    /// Type of error occurred.
     pub kind: Kind,
 }
 

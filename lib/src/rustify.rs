@@ -19,7 +19,7 @@ impl Display for Sexp {
     }
 }
 
-/* #[derive(Debug)]
+/* #[derive(Debug, Eq, PartialEq)]
 pub enum RustifyError {
 
 }
