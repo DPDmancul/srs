@@ -168,8 +168,15 @@ dependencies = [
 name = "srs"
 version = "0.1.0"
 dependencies = [
- "clap",
  "indoc",
+]
+
+[[package]]
+name = "srs-bin"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "srs",
 ]
 
 [[package]]

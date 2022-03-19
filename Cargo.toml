@@ -1,19 +1,5 @@
-[package]
-name = "srs"
-description = "S-expression to Rust"
-version = "0.1.0"
-edition = "2021"
-authors = ["Davide Peressoni"]
-repository = "https://gitlab.com/DPDmancul/srs"
-license = "GPL-3.0-or-later"
-keywords = ["sexpr", "lisp", "s-expression", "rust"]
-
-# [profile.release]
-# strip = true
-
-[dependencies]
-clap = { version = "3.1.6", features = ["derive"] }
-
-[dev-dependencies]
-indoc = "1.0"
-
+[workspace]
+members = [
+  "bin",
+  "lib",
+]

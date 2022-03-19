@@ -30,7 +30,8 @@ fn main() {
         path => Box::new(BufWriter::new(File::create(path).unwrap())),
     };
 
-    srs::parser::parse(input)
-        .iter()
-        .for_each(|e| write!(output, "{}", e).unwrap());
+    match srs::parser::parse_lines(input.lines().map(Result::unwrap)) {
+        Ok(res) => res.iter().for_each(|e| write!(output, "{}", e).unwrap()),
+        Err(err) => eprintln!("Parse error. {}", err),
+    }
 }

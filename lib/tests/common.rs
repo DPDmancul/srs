@@ -4,7 +4,8 @@ macro_rules! transpile {
         #[test]
         fn $title() {
             assert_eq!(
-                srs::parser::parse(std::io::Cursor::new($srs))
+                srs::parser::parse($srs)
+                    .unwrap()
                     .iter()
                     .map(ToString::to_string)
                     .collect::<String>(),

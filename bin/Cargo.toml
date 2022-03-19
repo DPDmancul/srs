@@ -1,0 +1,22 @@
+[package]
+name = "srs-bin"
+description = "S-expression to Rust"
+version = "0.1.0"
+edition = "2021"
+authors = ["Davide Peressoni"]
+repository = "https://gitlab.com/DPDmancul/srs"
+license = "GPL-3.0-or-later"
+keywords = ["sexpr", "lisp", "s-expression", "rust"]
+categories = ["command-line-utilities", "compilers"]
+
+[[bin]]
+name = "srs"
+path = "src/main.rs"
+
+# [profile.release]
+# strip = true
+
+[dependencies]
+srs = { path = "../lib" }
+clap = { version = "3.1.6", features = ["derive"] }
+

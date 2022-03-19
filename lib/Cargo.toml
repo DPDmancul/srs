@@ -1,0 +1,16 @@
+[package]
+name = "srs"
+description = "S-expression to Rust"
+version = "0.1.0"
+edition = "2021"
+authors = ["Davide Peressoni"]
+repository = "https://gitlab.com/DPDmancul/srs"
+license = "GPL-3.0-or-later"
+keywords = ["sexpr", "lisp", "s-expression", "rust"]
+categories = ["no-std", "compilers"]
+
+[dependencies]
+
+[dev-dependencies]
+indoc = "1.0"
+

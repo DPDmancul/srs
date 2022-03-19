@@ -1,5 +1,5 @@
-use std::{
-    fmt::{Display, Formatter, Result},
+use core::{
+    fmt::{self, Display},
     iter::Peekable,
 };
 
@@ -14,13 +14,26 @@ struct IndSexp<'a>(
 );
 
 impl Display for Sexp {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", IndSexp(self, 0, true))
     }
 }
 
+/* #[derive(Debug)]
+pub enum RustifyError {
+
+}
+
+impl Display for RustifyError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            _ => todo!()
+        }
+    }
+} */
+
 impl<'a> Display for IndSexp<'a> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let &Self(exp, level, statement) = self;
 
         let indent_base = "    ";
@@ -40,7 +53,7 @@ impl<'a> Display for IndSexp<'a> {
 
         // Writes a function call
         // l: arguments
-        let call = |f: &mut Formatter<'_>, l| {
+        let call = |f: &mut fmt::Formatter<'_>, l| {
             write!(f, "(")?;
             let mut first = true;
             for a in l {
@@ -60,8 +73,8 @@ impl<'a> Display for IndSexp<'a> {
         // Writes the body of a block
         // l: expressions
         // returns: returns last expression?
-        let body = |f: &mut Formatter<'_>,
-                    mut l: Peekable<std::slice::Iter<Sexp>>,
+        let body = |f: &mut fmt::Formatter<'_>,
+                    mut l: Peekable<core::slice::Iter<Sexp>>,
                     level,
                     returns: bool| {
             writeln!(f, "{{")?;
@@ -198,7 +211,10 @@ impl<'a> Display for IndSexp<'a> {
                             "use" => {
                                 for path in l {
                                     write!(f, "{}use ", indent!())?;
-                                    fn parse_path(f: &mut Formatter<'_>, path: &Sexp) -> Result {
+                                    fn parse_path(
+                                        f: &mut fmt::Formatter<'_>,
+                                        path: &Sexp,
+                                    ) -> fmt::Result {
                                         match path {
                                             Sexp::Atom { val, .. } => write!(f, "{}", val)?,
                                             Sexp::List(l) => match l.first() {
