@@ -1,0 +1,110 @@
+image: rust:latest
+
+stages:
+  - test
+  - build
+  - publish
+
+cache:
+  paths:
+    - target/
+    - $CARGO_HOME
+
+test:
+  stage: test
+  script:
+    - rustc --version && cargo --version
+    - cargo test --all --verbose
+
+.build: &build
+  stage: build
+  script:
+    - rustup target add $TARGET
+    - rustup toolchain install stable-$TARGET
+    - $BEFORE_BUILD
+    - cargo build --target $TARGET --release
+  artifacts:
+    paths: [ target/$TARGET/release/srs$EXT ]
+
+
+linux-gnu-64:
+  variables:
+    TARGET: x86_64-unknown-linux-gnu
+  <<: *build
+
+# linux-arm:
+#   variables:
+#     TARGET: armv7-unknown-linux-gnueabihf
+#   before_script:
+#     - dpkg --add-architecture armhf
+#     - apt-get update
+#     - apt-get install -y libc6-armhf-cross libc6-dev-armhf-cross gcc-arm-linux-gnueabihf
+#   <<: *build
+
+windows-mingw-64:
+  variables:
+    TARGET: x86_64-pc-windows-gnu
+    EXT: .exe
+  before_script:
+    - &migw-w64 apt-get update && apt-get install -y gcc-mingw-w64
+    - mkdir -p .cargo && printf "\n[target.$TARGET]\nlinker = \"/usr/bin/x86_64-w64-mingw32-gcc\"\nar = \"/usr/x86_64-w64-mingw32/bin/ar\"\n" >> .cargo/config.toml
+  <<: *build
+
+linux-gnu-32:
+  variables:
+    TARGET: i686-unknown-linux-gnu
+  before_script:
+    - apt-get update && apt install -y gcc-multilib
+  <<: *build
+
+# windows-mingw-32:
+#   variables:
+#     TARGET: i686-pc-windows-gnu
+#     EXT: .exe
+#     BEFORE_BUILD: bash -c "cp -f /usr/x86_64-w64-mingw32/lib/{,dll}crt2.o `rustc --print sysroot`/lib/rustlib/x86_64-pc-windows-gnu/lib"
+#   before_script:
+#     - *migw-w64
+#     - mkdir -p .cargo && printf "\n[target.$TARGET]\nrustflags = [\"-C\", \"panic=abort\", \"-C\", \"link-args=-mwindows\"]\nlinker = \"/usr/bin/i686-w64-mingw32-gcc\"\nar = \"/usr/i686-w64-mingw32/bin/ar\"\n" >> .cargo/config.toml
+#     - export RUSTFLAGS="-C panic=abort" #-C lto"
+#   <<: *build
+
+macos-64:
+  variables:
+    TARGET: x86_64-apple-darwin
+    OSX_VERSION: "10.10"
+    OSX_VERSION_MIN: "10.7"
+  before_script:
+    - mkdir -p .cargo && printf "\n[target.$TARGET]\nlinker = \"${TARGET}14-clang\"\nar = \"${TARGET}14-ar\"\n" >> .cargo/config.toml
+    - apt-get update && apt-get install -y wget
+    - apt-get install -y clang gcc g++ cmake
+    - apt-get install -y zlib1g-dev libmpc-dev libmpfr-dev libgmp-dev
+    - git clone https://github.com/tpoechtrager/osxcross
+    - cd osxcross
+    - wget -nc https://s3.dockerproject.org/darwin/v2/MacOSX$OSX_VERSION.sdk.tar.xz
+    - mv MacOSX$OSX_VERSION.sdk.tar.xz tarballs/
+    - UNATTENDED=yes ./build.sh
+    - cd ..
+    - export PATH="$(pwd)/osxcross/target/bin:$PATH"
+    - export LIBZ_SYS_STATIC=1
+    - export CC=o64-clang
+    - export CXX=o64-clang++
+  <<: *build
+
+doc:
+  stage: build
+  script:
+    - cargo doc --no-deps --lib
+  artifacts:
+    paths: [ target/doc/ ]
+
+
+pages:
+  stage: publish
+  dependencies: [ doc ]
+  script:
+    - mv target/doc public
+  artifacts:
+    paths: [ public ]
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
