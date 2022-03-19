@@ -100,7 +100,7 @@ doc:
 
 pages:
   stage: publish
-  dependencies: [ doc ]
+  needs: [ doc ]
   script:
     - mv target/doc public
   artifacts:
