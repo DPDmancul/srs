@@ -6,7 +6,10 @@ extern crate alloc;
 use core::fmt::{self, Display};
 
 pub mod parser;
+pub use parser::{parse, parse_lines};
+
 pub mod rustify;
+pub use rustify::rustify;
 
 /// Represents an error occurred during parsing or rustifying.
 ///

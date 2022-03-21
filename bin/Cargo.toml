@@ -19,4 +19,5 @@ path = "src/main.rs"
 [dependencies]
 srs = { path = "../lib" }
 clap = { version = "3.1.6", features = ["derive"] }
-
+syn = { version = "1.0.89", default-features = false, features = ["parsing"] }
+prettyplease = "0.1.7"

@@ -74,19 +74,28 @@ pub fn parse(input: &str) -> impl Iterator<Item = Result<Sexp, Error<ParseError>
 ///
 /// ```
 /// use std::io::stdin;
-/// use srs::parser::parse_lines;
+/// use srs::{parse_lines, rustify};
 /// # use std::io::BufRead;
 /// # let stdin = std::io::Cursor::new("(f x)");
+/// # macro_rules! println {
+/// #   ("{}", $v: tt) => { assert_eq!("f(x);", $v.to_string()); }
+/// # }
+/// # macro_rules! eprintln {
+/// #   ($($e: tt) *) => { panic!($($e)*); }
+/// # }
 ///
 /// for x in parse_lines(stdin.lines().map(Result::unwrap)) {
 ///     match x {
-///         Ok(res) => print!("{}", res),
+///         Ok(res) => match srs::rustify(&res) {
+///             Ok (res) => println!("{}", res),
+///             Err(err) => eprintln!("Error. {}", err),
+///         }
 ///         Err(err) => eprintln!("Parse error. {}", err),
 ///     }
 /// }
 /// ```
-pub fn parse_lines<T: Iterator<Item = S>, S: Into<String>>(
-    input: T,
+pub fn parse_lines(
+    input: impl Iterator<Item = impl Into<String>>,
 ) -> impl Iterator<Item = Result<Sexp, Error<ParseError>>> {
     let mut string_mode = false;
     let mut escape_mode = false;
@@ -222,13 +231,11 @@ pub fn parse_lines<T: Iterator<Item = S>, S: Into<String>>(
                 _ => return None,
             }
         })
-        // Transpose Result and Vec (required to flatten)
-        .map(|r| match r {
+        // Transpose Result and Vec (required to flatten the inner vecs)
+        .flat_map(|r| match r {
             Err(e) => vec![Err(e)],
             Ok(v) => v.into_iter().map(Result::Ok).collect(),
         })
-        // Flatten the inner Vecs
-        .flatten()
 }
 
 #[cfg(test)]

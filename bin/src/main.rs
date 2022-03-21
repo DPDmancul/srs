@@ -17,6 +17,18 @@ struct Args {
     output: String,
 }
 
+/// Panics with a custom message, without other informations.
+macro_rules! clean_panic {
+    ($($arg : tt) *) => {{
+        std::panic::set_hook(Box::new(|info| {
+            if let Some(s) = info.payload().downcast_ref::<String>() {
+                eprintln!("{}", s);
+            }
+        }));
+        panic!($($arg)*);
+    }};
+}
+
 fn main() {
     let args = Args::parse();
 
@@ -30,10 +42,20 @@ fn main() {
         path => Box::new(BufWriter::new(File::create(path).unwrap())),
     };
 
-    for x in srs::parser::parse_lines(input.lines().map(Result::unwrap)) {
-        match x {
-            Ok(res) => write!(output, "{}", res).unwrap(),
-            Err(err) => eprintln!("Parse error. {}", err),
-        }
-    }
+    let parsed_exps = srs::parse_lines(input.lines().map(Result::unwrap));
+    let token_stream = FromIterator::from_iter(parsed_exps.map(|x| match x {
+        Ok(res) => match srs::rustify(&res) {
+            Ok(res) => res,
+            Err(e) => clean_panic!("Error. {}", e),
+        },
+        Err(e) => clean_panic!("Parse error. {}", e),
+    }));
+
+    writeln!(
+        output,
+        "{}",
+        prettyplease::unparse(&syn::parse2(token_stream).unwrap())
+    )
+    .unwrap()
 }
+

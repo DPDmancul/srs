@@ -4,9 +4,9 @@ macro_rules! transpile {
         #[test]
         fn $title() {
             assert_eq!(
-                srs::parser::parse($srs)
+                srs::parse($srs)
                     .into_iter()
-                    .map(|e| e.unwrap().to_string())
+                    .map(|e| srs::rustify(&e.unwrap()).unwrap().to_string())
                     .collect::<String>(),
                 indoc::indoc!($rs)
             )
