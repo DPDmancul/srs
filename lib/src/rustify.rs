@@ -117,22 +117,24 @@ fn exp_to_token_stream(exp: &Sexp, statement: bool) -> Result {
                 kind: RustifyError::AtomParseError(val.to_string(), e),
             }),
         },
-        Sexp::Array(a) | Sexp::Generics(a) => {
+        Sexp::Array(a) => {
             Ok(token_stream![Group(
-                match exp {
-                    Sexp::Array(_) => Delimiter::Bracket,
-                    Sexp::Generics(_) => Delimiter::Brace, // TODO angular
-                    _ => unreachable!(),
-                },
+                Delimiter::Bracket,
                 #[allow(unstable_name_collisions)]
-                list_to_token_stream(a, ',')?,
+                interspere_token_stream(a, ',')?,
             )])
+        }
+        Sexp::Generics(a) => {
+            let mut res = token_stream![Punct('<', Spacing::Joint)];
+            res.extend(interspere_token_stream(a, ',')?);
+            res.extend(token_stream![Punct('>', Spacing::Alone)]);
+            Ok(res)
         }
         Sexp::List(l) => list::list_to_token_stream(l.iter(), statement),
     }
 }
 
-fn list_to_token_stream<'a>(list: impl IntoIterator<Item = &'a Sexp>, separator: char) -> Result {
+fn interspere_token_stream<'a>(list: impl IntoIterator<Item = &'a Sexp>, separator: char) -> Result {
     #[allow(unstable_name_collisions)]
     list.into_iter()
         .map(|x| exp_to_token_stream(x, false))
@@ -148,7 +150,7 @@ fn call_to_token_stream<'a>(
     let mut res = exp_to_token_stream(name, false)?;
     res.extend(token_stream![Group(
         Delimiter::Parenthesis,
-        list_to_token_stream(args, ',')?,
+        interspere_token_stream(args, ',')?,
     )]);
     if statement {
         res.extend(token_stream![Punct(';', Spacing::Alone)])

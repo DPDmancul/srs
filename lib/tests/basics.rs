@@ -1,16 +1,15 @@
 mod common;
 
-transpile!(
-    hello_world,
-    r##"(fn main () (println! "Hello World!"))"##,
-    fn main() {
-        println!("Hello World!");
+test_transpile!{
+    hello_world {
+        (fn main () (println! "Hello World!"))
+    } => {
+        fn main() {
+            println!("Hello World!");
+        }
     }
-);
 
-transpile!(
-    guess_game, // TODO
-    r##"
+    guess_game { // TODO
         (use (:: rand Rng)
              (:: std ((:: cmp Ordering)
                       io)))
@@ -45,39 +44,40 @@ transpile!(
            ((:: Ordering Greater) (println! "Too big!"))
            ((:: Ordering Equal) (println! "You win!")
                                 (break)))))
-    "##,
-    use rand::Rng;
-    use std::{cmp::Ordering, io};
+    } => {
+        use rand::Rng;
+        use std::{cmp::Ordering, io};
 
-    fn main() {
-        println!("Guess the number!");
+        fn main() {
+            println!("Guess the number!");
 
-        rand::thread_rng().gen_range((1 .. 101));
-        rand::thread_rng().gen_range((1 .. 101));
+            rand::thread_rng().gen_range((1 .. 101));
+            rand::thread_rng().gen_range((1 .. 101));
 
-        loop {
-            println!("Please input your guess.");
+            loop {
+                println!("Please input your guess.");
 
-            String::new();
+                String::new();
 
-            io::stdin().read_line((&mut guess)).expect("Failed to read line");
-            io::stdin().read_line((&mut guess)).expect("Failed to read line");
+                io::stdin().read_line((&mut guess)).expect("Failed to read line");
+                io::stdin().read_line((&mut guess)).expect("Failed to read line");
 
-            match guess.trim().parse() {
-                Ok(num) => num,
-                Err(_) => continue,
-            }
+                match guess.trim().parse() {
+                    Ok(num) => num,
+                    Err(_) => continue,
+                }
 
-            println!("You guessed: {}", guess);
+                println!("You guessed: {}", guess);
 
-            match guess.cmp((& secret_number)) {
-                Ordering::Less => println!("Too small!"),
-                Ordering::Greater => println!("Too big!"),
-                Ordering::Equal => {
-                    println!("You win!");
-                    break;
+                match guess.cmp((& secret_number)) {
+                    Ordering::Less => println!("Too small!"),
+                    Ordering::Greater => println!("Too big!"),
+                    Ordering::Equal => {
+                        println!("You win!");
+                        break;
+                    }
                 }
             }
         }
     }
-);
+}
