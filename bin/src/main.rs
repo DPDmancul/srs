@@ -44,17 +44,16 @@ fn main() {
 
     let parsed_exps = srs::parse_lines(input.lines().map(Result::unwrap));
     let token_stream = FromIterator::from_iter(parsed_exps.map(|x| match x {
-        Ok(res) => match srs::rustify(&res) {
-            Ok(res) => res,
-            Err(e) => clean_panic!("Error. {}", e),
-        },
+        Ok(res) => srs::rustify(&res).unwrap_or_else(|e| clean_panic!("Error. {}", e)),
         Err(e) => clean_panic!("Parse error. {}", e),
     }));
 
-    writeln!(
+    write!(
         output,
         "{}",
-        prettyplease::unparse(&syn::parse2(token_stream).unwrap())
+        prettyplease::unparse(
+            &syn::parse2(token_stream).unwrap_or_else(|e| clean_panic!("Syntax error: {}", e)) // TODO better feedback
+        )
     )
     .unwrap()
 }

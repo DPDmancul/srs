@@ -14,5 +14,6 @@ itertools = {version = "0.10.2", default-features = false, features = [ "use_all
 proc-macro2 = "1.0.36"
 
 [dev-dependencies]
-indoc = "1.0"
+syn = { version = "1.0.89", default-features = false, features = ["parsing"] }
+prettyplease = "0.1.7"
 

@@ -78,7 +78,7 @@ pub fn parse(input: &str) -> impl Iterator<Item = Result<Sexp, Error<ParseError>
 /// # use std::io::BufRead;
 /// # let stdin = std::io::Cursor::new("(f x)");
 /// # macro_rules! println {
-/// #   ("{}", $v: tt) => { assert_eq!("f(x);", $v.to_string()); }
+/// #   ("{}", $v: tt) => { assert_eq!("f (x) ;", $v.to_string()); }
 /// # }
 /// # macro_rules! eprintln {
 /// #   ($($e: tt) *) => { panic!($($e)*); }
