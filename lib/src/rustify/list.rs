@@ -1,21 +1,13 @@
-use alloc::string::ToString;
-use proc_macro2::*;
-
-use crate::{
-    parser::Sexp,
-    rustify::{call_to_token_stream, rustify, Result, RustifyError},
-    Error,
-    token_stream
-};
+use super::*;
 
 pub fn list_to_token_stream<'a>(mut l: impl Iterator<Item = &'a Sexp>, statement: bool) -> Result {
     // let mut l = l.iter().peekable();
 
-    let mut res = TokenStream::new();
+    let mut res = token_stream![];
 
     while let Some(exp) = l.next() {
         match &exp {
-            Sexp::Atom { val, .. } => {
+            Sexp::Atom { val, lineno } => {
                 match val.as_str() {
                     // Operators
                     /* "!" => {
@@ -90,7 +82,6 @@ pub fn list_to_token_stream<'a>(mut l: impl Iterator<Item = &'a Sexp>, statement
                         }
                         break;
                     }*/
-
                     // Public
                     "pub" => res.extend(token_stream![Ident("pub", Span::call_site())]),
 
@@ -219,51 +210,25 @@ pub fn list_to_token_stream<'a>(mut l: impl Iterator<Item = &'a Sexp>, statement
                             writeln!(f, ";")?
                         }
                         break;
-                    }
-
+                    }*/
                     // Functions & closures (lambdas)
                     "fn" => {
-                        if let Sexp::Atom { val, .. } = l.next().unwrap_or_else(|| {
-                            panic!("Missing function arguments on line {}", lineno)
-                        }) {
-                            write!(f, "{}fn {}", is_pub!(), val)?;
-                            let args = loop {
-                                match l.next().unwrap_or_else(|| {
-                                    panic!(
-                                        "Missing arguments for function {} on line {}",
-                                        val, lineno
-                                    )
-                                }) {
-                                    Sexp::List(a) => break a,
-                                    g @ Sexp::Generics(_) => write!(f, "{}", g)?,
-                                    _ => panic!(
-                                        "Missing arguments for function {} on line {}",
-                                        val, lineno
-                                    ),
-                                }
-                            };
-                            write!(f, "() ")
-                        } else {
-                            // lambda
-                            write!(f, "{}|", indent!())?;
-                            write!(f, "| ")
-                        }?;
-                        body(f, l, level, false)?;
+                        res.extend(r#fn::fn_to_token_stream(l, statement, *lineno)?);
                         break;
-                    }*/
+                    }
 
-                    // Function invocation from atom
+                    // Function invocation
                     _ => {
                         res.extend(call_to_token_stream(exp, l, statement)?);
-                        break
+                        break;
                     }
                 }
             }
             // Function invocation from list
             Sexp::List(_) => {
-                        res.extend(call_to_token_stream(exp, l, statement)?);
-                        break
-                    }
+                res.extend(call_to_token_stream(exp, l, statement)?);
+                break;
+            }
             _ => {
                 return Err(Error {
                     lineno: None,

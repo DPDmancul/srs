@@ -8,7 +8,10 @@ use proc_macro2::*;
 
 use crate::{parser::Sexp, Error};
 
+mod r#fn;
 mod list;
+mod macros;
+use macros::*;
 
 /// An error occurred during generating Rust code.
 #[derive(Debug)]
@@ -64,51 +67,7 @@ pub fn rustify(exp: &Sexp) -> Result {
     exp_to_token_stream(exp, true)
 }
 
-#[macro_export]
-macro_rules! token_tree {
-    ($variant: ident ( $($args: tt)*)) => {
-        TokenTree::$variant($variant::new($($args)*))
-    }
-}
-#[macro_export]
-macro_rules! token_stream {
-    ($($($args: tt)*,)*) => {
-        TokenStream::from_iter([
-            $(token_tree!($($args)*))*
-        ])
-    };
-    ($($args: tt)*) => {
-        TokenStream::from($crate::token_tree!($($args)*))
-    }
-}
-
 fn exp_to_token_stream(exp: &Sexp, statement: bool) -> Result {
-    // Writes the body of a block
-    // l: expressions
-    // returns: returns last expression?
-    /* let body = |f: &mut fmt::Formatter<'_>,
-                mut l: Peekable<core::slice::Iter<Sexp>>,
-                level,
-                returns: bool| {
-        writeln!(f, "{{")?;
-        while let Some(e) = l.next() {
-            write!(
-                f,
-                "{}{}",
-                indent!(level + 1),
-                IndSexp(e, level + 1, !returns || l.peek().is_some())
-            )?
-        }
-        if returns {
-            writeln!(f)?
-        }
-        write!(f, "{}}}", indent!(level))?;
-        if statement {
-            writeln!(f)?
-        }
-        Ok(())
-    }; */
-
     match exp {
         Sexp::Atom { val, lineno } => match TokenStream::from_str(val) {
             Ok(val) => Ok(val),
@@ -117,13 +76,10 @@ fn exp_to_token_stream(exp: &Sexp, statement: bool) -> Result {
                 kind: RustifyError::AtomParseError(val.to_string(), e),
             }),
         },
-        Sexp::Array(a) => {
-            Ok(token_stream![Group(
-                Delimiter::Bracket,
-                #[allow(unstable_name_collisions)]
-                interspere_token_stream(a, ',')?,
-            )])
-        }
+        Sexp::Array(a) => Ok(token_stream![Group(
+            Delimiter::Bracket,
+            interspere_token_stream(a, ',')?,
+        )]),
         Sexp::Generics(a) => {
             let mut res = token_stream![Punct('<', Spacing::Joint)];
             res.extend(interspere_token_stream(a, ',')?);
@@ -134,7 +90,10 @@ fn exp_to_token_stream(exp: &Sexp, statement: bool) -> Result {
     }
 }
 
-fn interspere_token_stream<'a>(list: impl IntoIterator<Item = &'a Sexp>, separator: char) -> Result {
+fn interspere_token_stream<'a>(
+    list: impl IntoIterator<Item = &'a Sexp>,
+    separator: char,
+) -> Result {
     #[allow(unstable_name_collisions)]
     list.into_iter()
         .map(|x| exp_to_token_stream(x, false))
@@ -156,5 +115,21 @@ fn call_to_token_stream<'a>(
         res.extend(token_stream![Punct(';', Spacing::Alone)])
     }
     Ok(res)
+}
+
+/// Writes the body of a block
+/// l: expressions
+/// returns: returns last expression?
+fn block_to_token_stream<'a>(l: impl Iterator<Item = &'a Sexp>, returns: bool) -> Result {
+    Ok(token_stream![Group(
+        Delimiter::Brace,
+        TokenStream::from_iter(
+            l.peekable()
+                .batching(|it| it
+                    .next()
+                    .map(|x| exp_to_token_stream(x, !returns || it.peek().is_some())))
+                .collect::<Result>()?
+        )
+    )])
 }
 
