@@ -1,15 +1,16 @@
 mod common;
 
 test_transpile!{
-    hello_world {
+    hello_world:  r##"
         (fn main () (println! "Hello World!"))
-    } => {
+    "## => {
         fn main() {
             println!("Hello World!");
         }
     }
 
-    guess_game { // TODO
+    // TODO
+    guess_game: r##"
         (use (:: rand Rng)
              (:: std ((:: cmp Ordering)
                       io)))
@@ -44,7 +45,7 @@ test_transpile!{
            ((:: Ordering Greater) (println! "Too big!"))
            ((:: Ordering Equal) (println! "You win!")
                                 (break)))))
-    } => {
+    "## => {
         use rand::Rng;
         use std::{cmp::Ordering, io};
 
@@ -65,7 +66,7 @@ test_transpile!{
                 match guess.trim().parse() {
                     Ok(num) => num,
                     Err(_) => continue,
-                }
+                };
 
                 println!("You guessed: {}", guess);
 
@@ -76,7 +77,7 @@ test_transpile!{
                         println!("You win!");
                         break;
                     }
-                }
+                };
             }
         }
     }

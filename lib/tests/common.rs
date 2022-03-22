@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! test_transpile {
-    ($($title: ident {$($srs: tt)*} => {$($rs: tt)*})*) => {
+    ($($title: ident : $srs: expr => {$($rs: tt)*})*) => {
         $(
             #[test]
             fn $title() {
@@ -9,14 +9,16 @@ macro_rules! test_transpile {
                 use core::str::FromStr;
                 use proc_macro2::TokenStream;
                 use prettyplease::unparse;
+                use pretty_assertions::assert_eq;
+
 
                 let [a, b] = [
-                    parse(stringify!{$($srs)*})
+                    ("srs", parse($srs)
                         .into_iter()
                         .map(|e| rustify(&e.unwrap()).unwrap())
-                        .collect::<TokenStream>(),
-                        TokenStream::from_str(stringify!{$($rs)*}).unwrap()
-                ].map(|x| unparse(&syn::parse2(x).unwrap()));
+                        .collect::<TokenStream>()),
+                    ("rs", TokenStream::from_str(stringify!{$($rs)*}).expect("Cannot tokenize rust version"))
+                ].map(|(i, x)| unparse(&syn::parse2(x).expect(&format!("syn cannot parse {}", i))));
 
                 assert_eq!(a, b)
             }

@@ -1,3 +1,7 @@
+#![doc(html_favicon_url = "https://gitlab.com/DPDmancul/srs/-/raw/main/srs.svg")]
+#![doc(html_logo_url = "https://gitlab.com/DPDmancul/srs/-/raw/main/srs.svg")]
+#![doc = include_str!("../../README.md")]
+
 #![no_std]
 
 #[macro_use]

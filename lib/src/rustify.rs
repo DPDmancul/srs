@@ -8,9 +8,11 @@ use proc_macro2::*;
 
 use crate::{parser::Sexp, Error};
 
+mod flow;
 mod r#fn;
 mod list;
 mod macros;
+mod ops;
 use macros::*;
 
 /// An error occurred during generating Rust code.
@@ -28,6 +30,14 @@ pub enum RustifyError {
         /// The representation of the unexpected token.
         String,
     ),
+    /// Arguments are missing for the given constructor.
+    MissingArguments(String),
+    /// An operand is missing for the given operator.
+    MissingOperand(String),
+    /// Too much arguments were passed.
+    TooMuchArguments(String),
+    /// Match condition malformed.
+    ExpectedMatchCondition
 }
 
 impl Display for RustifyError {
@@ -39,6 +49,10 @@ impl Display for RustifyError {
                 "Unexpected array or generics `{:?}` as function name",
                 exp
             ),
+            Self::MissingArguments(x) => write!(f, "Missing arguments for '{}'", x),
+            Self::MissingOperand(op) => write!(f, "Missing operands for operator '{}'", op),
+            Self::TooMuchArguments(x) => write!(f, "Too much arguments for '{}'", x),
+            Self::ExpectedMatchCondition => write!(f, "Expected list (condition value) in match body"),
         }
     }
 }
@@ -78,27 +92,16 @@ fn exp_to_token_stream(exp: &Sexp, statement: bool) -> Result {
         },
         Sexp::Array(a) => Ok(token_stream![Group(
             Delimiter::Bracket,
-            interspere_token_stream(a, ',')?,
+            interspere_token_stream!(a)?,
         )]),
         Sexp::Generics(a) => {
             let mut res = token_stream![Punct('<', Spacing::Joint)];
-            res.extend(interspere_token_stream(a, ',')?);
+            res.extend(interspere_token_stream!(a)?);
             res.extend(token_stream![Punct('>', Spacing::Alone)]);
             Ok(res)
         }
         Sexp::List(l) => list::list_to_token_stream(l.iter(), statement),
     }
-}
-
-fn interspere_token_stream<'a>(
-    list: impl IntoIterator<Item = &'a Sexp>,
-    separator: char,
-) -> Result {
-    #[allow(unstable_name_collisions)]
-    list.into_iter()
-        .map(|x| exp_to_token_stream(x, false))
-        .intersperse_with(|| Ok(token_stream![Punct(separator, Spacing::Alone)]))
-        .collect::<Result>()
 }
 
 fn call_to_token_stream<'a>(
@@ -109,7 +112,7 @@ fn call_to_token_stream<'a>(
     let mut res = exp_to_token_stream(name, false)?;
     res.extend(token_stream![Group(
         Delimiter::Parenthesis,
-        interspere_token_stream(args, ',')?,
+        interspere_token_stream!(args)?,
     )]);
     if statement {
         res.extend(token_stream![Punct(';', Spacing::Alone)])
@@ -133,3 +136,24 @@ fn block_to_token_stream<'a>(l: impl Iterator<Item = &'a Sexp>, returns: bool) -
     )])
 }
 
+fn path_to_token_stream(path: &Sexp, lineno: usize) -> Result {
+    match path {
+        Sexp::Atom { val, .. } => Ok(TokenStream::from_str(val).map_err(|e| Error {
+            lineno: Some(lineno),
+            kind: RustifyError::AtomParseError(val.to_string(), e),
+        })?),
+        Sexp::List(l) => match l.first() {
+            Some(Sexp::Atom { val, lineno }) if val == "::" => {
+                interspere_token_stream!(l[1..].iter(), "::", |p| path_to_token_stream(p, *lineno))
+            }
+            _ => Ok(token_stream!(Group(
+                Delimiter::Brace,
+                interspere_token_stream!(l, ',', |p| path_to_token_stream(p, lineno))?
+            ))),
+        },
+        _ => Err(Error {
+            lineno: Some(lineno),
+            kind: RustifyError::UnexpectedFunctionName(rustify(path)?.to_string()),
+        }),
+    }
+}

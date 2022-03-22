@@ -18,3 +18,20 @@ macro_rules! token_stream {
 
 pub(crate) use token_tree;
 pub(crate) use token_stream;
+
+macro_rules! interspere_token_stream {
+    ($list: expr) => { interspere_token_stream!($list, ',') };
+    ($list: expr, $separator: expr) => { interspere_token_stream!($list, $separator, |x| exp_to_token_stream(x, false)) };
+    ($list: expr, $separator: expr, $mapper: expr) => {{
+        #[allow(unused_imports)]
+        use ops::PunctAsTokenStream;
+        #[allow(unstable_name_collisions)]
+        $list.into_iter()
+            .map($mapper)
+            .intersperse_with(|| Ok($separator.punct_as_token_stream()))
+            .collect::<Result>()
+    }};
+}
+
+pub(crate) use interspere_token_stream;
+

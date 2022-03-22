@@ -16,4 +16,5 @@ proc-macro2 = "1.0.36"
 [dev-dependencies]
 syn = { version = "1.0.89", default-features = false, features = ["parsing"] }
 prettyplease = "0.1.7"
+pretty_assertions = "1.2.0"
 
