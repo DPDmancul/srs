@@ -61,6 +61,7 @@ impl Display for ParseError {
 ///
 /// If you have an iterator (e.g. stdin or a file) it is preferred to use [`parse_lines`] since the
 /// latter doesn't consume the input iterator.
+#[inline]
 pub fn parse(input: &str) -> impl Iterator<Item = Result<Sexp, Error<ParseError>>> + '_ {
     parse_lines(input.split('\n'))
 }
@@ -108,7 +109,7 @@ pub fn parse_lines(
     /// Returns the matching grouping character.
     ///
     /// e.g. `pair_of('(') == ')'`
-    fn pair_of(par: char) -> char {
+    const fn pair_of(par: char) -> char {
         match par {
             '(' => ')',
             ')' => '(',
@@ -296,4 +297,3 @@ mod tests {
         );
     }
 }
-

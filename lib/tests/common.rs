@@ -11,12 +11,15 @@ macro_rules! test_transpile {
                 use prettyplease::unparse;
                 use pretty_assertions::assert_eq;
 
-
-                let [a, b] = [
-                    ("srs", parse($srs)
+                let tok = parse($srs)
                         .into_iter()
                         .map(|e| rustify(&e.unwrap()).unwrap())
-                        .collect::<TokenStream>()),
+                        .collect::<TokenStream>();
+
+                println!("{}", tok);
+
+                let [a, b] = [
+                    ("srs", tok),
                     ("rs", TokenStream::from_str(stringify!{$($rs)*}).expect("Cannot tokenize rust version"))
                 ].map(|(i, x)| unparse(&syn::parse2(x).expect(&format!("syn cannot parse {}", i))));
 

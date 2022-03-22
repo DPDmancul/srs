@@ -1,6 +1,10 @@
 use super::*;
 
-pub fn list_to_token_stream<'a>(mut l: impl Iterator<Item = &'a Sexp>, statement: bool) -> Result {
+pub fn list_to_token_stream<'a>(
+    mut l: impl Iterator<Item = &'a Sexp>,
+    statement: bool,
+    precedence: i8,
+) -> Result {
     // let mut l = l.iter().peekable();
 
     let mut res = token_stream![];
@@ -12,32 +16,36 @@ pub fn list_to_token_stream<'a>(mut l: impl Iterator<Item = &'a Sexp>, statement
                 match val.as_str() {
                     // Operators
                     "!" => {
-                        res.extend(token_stream![
-                            Punct('!', Spacing::Alone),
-                            Group(
-                                Delimiter::Parenthesis,
-                                exp_to_token_stream(
-                                    l.next().ok_or(Error {
-                                        lineno: Some(lineno),
-                                        kind: RustifyError::MissingOperand(val.to_string())
-                                    })?,
-                                    false
-                                )?
-                            )
-                        ]);
+                        let mut stream = token_stream![Punct('!', Spacing::Alone)];
+                        let self_precedence = ops::precedence(val, true);
+                        stream.extend(exp_to_token_stream(
+                            l.next().ok_or(Error {
+                                lineno: Some(lineno),
+                                kind: RustifyError::MissingOperand(val.to_string()),
+                            })?,
+                            false,
+                            self_precedence,
+                        )?);
                         if l.next().is_some() {
                             return Err(Error {
                                 lineno: Some(lineno),
                                 kind: RustifyError::TooMuchArguments(val.to_string()),
                             });
                         }
+                        res.extend(if self_precedence > precedence {
+                            token_stream![Group(Delimiter::Parenthesis, stream)]
+                        } else {
+                            stream
+                        });
                         break;
                     }
                     "." | "::" | "+" | "-" | "*" | "/" | "%" | "|" | "||" | "&mut" | "&" | "&&"
                     | "*mut" | "<<" | ">>" | "@" | "^" | "+=" | "-=" | "*=" | "/=" | "%="
                     | "|=" | "&=" | "<<=" | ">>=" | "^=" | "=" | "==" | "!=" | "<" | "<=" | ">"
                     | ">=" | ".." | "as" => {
-                        res.extend(ops::op_to_token_stream(val, l, lineno, statement)?);
+                        res.extend(ops::op_to_token_stream(
+                            val, l, lineno, statement, precedence,
+                        )?);
                         break;
                     }
 
@@ -74,7 +82,7 @@ pub fn list_to_token_stream<'a>(mut l: impl Iterator<Item = &'a Sexp>, statement
                     "break" | "continue" | "return" => {
                         res.extend(token_stream!(Ident(val, Span::call_site())));
                         if let Some(a) = l.next() {
-                            res.extend(exp_to_token_stream(a, false))
+                            res.extend(exp_to_token_stream(a, false, i8::MAX))
                         }
                         if l.next().is_some() {
                             return Err(Error {

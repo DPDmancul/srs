@@ -13,29 +13,37 @@ pub fn match_to_token_stream<'a>(
             kind: RustifyError::MissingArguments("match".into()),
         })?,
         false,
+        i8::MAX,
     )?);
 
     res.extend(token_stream![Group(
         Delimiter::Brace,
-        TokenStream::from_iter(l.map(|m| if let Sexp::List(m) = m {
-            let mut res = exp_to_token_stream(m.get(0).ok_or(Error{
-                lineno: Some(lineno),
-                kind: RustifyError::ExpectedMatchCondition
-            })?, false)?;
-            res.extend("=>".punct_as_token_stream());
-            if m.len() == 2 {
-                res.extend(exp_to_token_stream(m.get(1).unwrap(), false));
-                res.extend(','.punct_as_token_stream());
+        TokenStream::from_iter(
+            l.map(|m| if let Sexp::List(m) = m {
+                let mut res = exp_to_token_stream(
+                    m.get(0).ok_or(Error {
+                        lineno: Some(lineno),
+                        kind: RustifyError::ExpectedMatchCondition,
+                    })?,
+                    false,
+                    i8::MAX,
+                )?;
+                res.extend("=>".punct_as_token_stream());
+                if m.len() == 2 {
+                    res.extend(exp_to_token_stream(m.get(1).unwrap(), false, i8::MAX));
+                    res.extend(','.punct_as_token_stream());
+                } else {
+                    res.extend(block_to_token_stream(m[1..].iter(), !statement)?)
+                }
+                Ok(res)
             } else {
-                res.extend(block_to_token_stream(m[1..].iter(), !statement)?)
-            }
-            Ok(res)
-        } else {
-            Err(Error {
-                lineno: Some(lineno),
-                kind: RustifyError::ExpectedMatchCondition,
+                Err(Error {
+                    lineno: Some(lineno),
+                    kind: RustifyError::ExpectedMatchCondition,
+                })
             })
-        }).collect::<Result>()?)
+            .collect::<Result>()?
+        )
     )]);
 
     if statement {

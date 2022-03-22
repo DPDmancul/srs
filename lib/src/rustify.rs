@@ -37,7 +37,7 @@ pub enum RustifyError {
     /// Too much arguments were passed.
     TooMuchArguments(String),
     /// Match condition malformed.
-    ExpectedMatchCondition
+    ExpectedMatchCondition,
 }
 
 impl Display for RustifyError {
@@ -52,7 +52,9 @@ impl Display for RustifyError {
             Self::MissingArguments(x) => write!(f, "Missing arguments for '{}'", x),
             Self::MissingOperand(op) => write!(f, "Missing operands for operator '{}'", op),
             Self::TooMuchArguments(x) => write!(f, "Too much arguments for '{}'", x),
-            Self::ExpectedMatchCondition => write!(f, "Expected list (condition value) in match body"),
+            Self::ExpectedMatchCondition => {
+                write!(f, "Expected list (condition value) in match body")
+            }
         }
     }
 }
@@ -77,11 +79,12 @@ pub type Result = core::result::Result<TokenStream, Error<RustifyError>>;
 ///     Err(err) => eprintln!("Error. {}", err),
 /// }
 /// ```
+#[inline]
 pub fn rustify(exp: &Sexp) -> Result {
-    exp_to_token_stream(exp, true)
+    exp_to_token_stream(exp, true, i8::MAX)
 }
 
-fn exp_to_token_stream(exp: &Sexp, statement: bool) -> Result {
+fn exp_to_token_stream(exp: &Sexp, statement: bool, precedence: i8) -> Result {
     match exp {
         Sexp::Atom { val, lineno } => match TokenStream::from_str(val) {
             Ok(val) => Ok(val),
@@ -100,7 +103,7 @@ fn exp_to_token_stream(exp: &Sexp, statement: bool) -> Result {
             res.extend(token_stream![Punct('>', Spacing::Alone)]);
             Ok(res)
         }
-        Sexp::List(l) => list::list_to_token_stream(l.iter(), statement),
+        Sexp::List(l) => list::list_to_token_stream(l.iter(), statement, precedence),
     }
 }
 
@@ -109,7 +112,7 @@ fn call_to_token_stream<'a>(
     args: impl Iterator<Item = &'a Sexp>,
     statement: bool,
 ) -> Result {
-    let mut res = exp_to_token_stream(name, false)?;
+    let mut res = exp_to_token_stream(name, false, i8::MAX)?;
     res.extend(token_stream![Group(
         Delimiter::Parenthesis,
         interspere_token_stream!(args)?,
@@ -128,9 +131,11 @@ fn block_to_token_stream<'a>(l: impl Iterator<Item = &'a Sexp>, returns: bool) -
         Delimiter::Brace,
         TokenStream::from_iter(
             l.peekable()
-                .batching(|it| it
-                    .next()
-                    .map(|x| exp_to_token_stream(x, !returns || it.peek().is_some())))
+                .batching(|it| it.next().map(|x| exp_to_token_stream(
+                    x,
+                    !returns || it.peek().is_some(),
+                    i8::MAX
+                )))
                 .collect::<Result>()?
         )
     )])
