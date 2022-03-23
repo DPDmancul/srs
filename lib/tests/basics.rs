@@ -1,7 +1,7 @@
 mod common;
 
 test_transpile! {
-    hello_world:  r##"
+    hello_world: r##"
         (fn main () (println! "Hello World!"))
     "## => {
         fn main() {
@@ -52,18 +52,20 @@ test_transpile! {
         fn main() {
             println!("Guess the number!");
 
-            rand::thread_rng().gen_range(1 .. 101);
-            rand::thread_rng().gen_range(1 .. 101);
+            /* let secret_number = */ rand::thread_rng().gen_range(1 .. 101);
+            // or
+            /* let secret_number = */ rand::thread_rng().gen_range(1 .. 101);
 
             loop {
                 println!("Please input your guess.");
 
-                String::new();
+                /* let mut guess = */ String::new();
 
                 io::stdin().read_line(&mut guess).expect("Failed to read line");
+                // or
                 io::stdin().read_line(&mut guess).expect("Failed to read line");
 
-                match guess.trim().parse() {
+                /* let guess: u32 = */ match guess.trim().parse() {
                     Ok(num) => num,
                     Err(_) => continue,
                 };

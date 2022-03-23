@@ -1,7 +1,7 @@
 mod common;
 
 test_transpile! {
-    precedence:  r##"
+    precedence: r##"
         (fn main ()
          (* (+ 1 2) (* 3 4))
          (+ (+ 1 2) (* 3 4))
