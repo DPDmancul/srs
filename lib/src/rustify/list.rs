@@ -96,6 +96,16 @@ pub fn list_to_token_stream<'a>(
                         break;
                     }
 
+                    // Types
+                    "struct" => {
+                        res.extend(types::struct_to_token_stream(l, lineno)?);
+                        break
+                    }
+                    "enum" => {
+                        res.extend(types::enum_to_token_stream(l, lineno)?);
+                        break
+                    }
+
                     // Functions & closures (lambdas)
                     "fn" => {
                         res.extend(r#fn::fn_to_token_stream(l, statement, lineno)?);

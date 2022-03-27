@@ -35,16 +35,16 @@ test_transpile! {
 
           ;;     let guess: u32 =
           (match (. guess (trim) (parse))
-           ((Ok num) num)
-           ((Err _) (continue)))
+            ((Ok num) num)
+            ((Err _) (continue)))
 
           (println! "You guessed: {}" guess)
 
           (match (. guess (cmp (& secret_number)))
-           ((:: Ordering Less) (println! "Too small!"))
-           ((:: Ordering Greater) (println! "Too big!"))
-           ((:: Ordering Equal) (println! "You win!")
-                                (break)))))
+            ((:: Ordering Less) (println! "Too small!"))
+            ((:: Ordering Greater) (println! "Too big!"))
+            ((:: Ordering Equal) (println! "You win!")
+                                 (break)))))
     "## => {
         use rand::Rng;
         use std::{cmp::Ordering, io};

@@ -13,6 +13,7 @@ mod r#fn;
 mod list;
 mod macros;
 mod ops;
+mod types;
 use macros::*;
 
 /// An error occurred during generating Rust code.
@@ -113,10 +114,41 @@ fn call_to_token_stream<'a>(
     statement: bool,
 ) -> Result {
     let mut res = exp_to_token_stream(name, false, i8::MAX)?;
-    res.extend(token_stream![Group(
-        Delimiter::Parenthesis,
-        interspere_token_stream!(args)?,
-    )]);
+    let mut args = args.peekable();
+    res.extend(match args.peek() {
+        // Construct struct
+        Some(Sexp::Atom { val, .. }) if val.starts_with(&[':', '.'][..]) => {
+            let mut body = token_stream![];
+            while let Some(a) = args.next() {
+                match a {
+                    Sexp::Atom { val, .. } if val.starts_with(':') => {
+                        body.extend(TokenStream::from_str(&val[1..]));
+                        if let Some(a) = args.peek() {
+                            body.extend(token_stream![Punct(match a {
+                                Sexp::Atom { val, .. } if val.starts_with(&[':', '.'][..]) => ',',
+                                Sexp::List(v) if matches!(v.first(), Some(Sexp::Atom { val, .. }) if val.starts_with('.')) => ',',
+                                _ => ':'
+                            }, Spacing::Alone)])
+                        }
+                    }
+                    _ => {
+                        body.extend(exp_to_token_stream(a, false, i8::MAX));
+                        if args.peek().is_some() {
+                            body.extend(token_stream!(Punct(',', Spacing::Alone)))
+                        }
+                    }
+                }
+            }
+            token_stream![Group(Delimiter::Brace, body)]
+        }
+        // Call function or construct enum variant
+        _ => {
+            token_stream![Group(
+                Delimiter::Parenthesis,
+                interspere_token_stream!(args)?,
+            )]
+        }
+    });
     if statement {
         res.extend(token_stream![Punct(';', Spacing::Alone)])
     }
